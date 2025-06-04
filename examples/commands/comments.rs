@@ -1,32 +1,28 @@
 use std::io::{self, Write};
 use std::fs::File;
 
+use clap::Args;
+
 use flac::StreamReader;
 use flac::metadata::{self, VorbisComment};
 
-pub const USAGE: &'static str = "
-Usage: metadata comments [options] <filename>
-       metadata comments --help
-
-Options:
-  --vendor       Show the vendor string.
-  --name=NAME    Show the comments matching the `NAME`.
-  --export=FILE  Export to file.
-  -h, --help     Show this message.
-";
-
-#[derive(Debug, RustcDecodable)]
+#[derive(Args)]
 pub struct Arguments {
-  arg_filename: String,
-  flag_vendor: bool,
-  flag_name: Option<String>,
-  flag_export: Option<String>,
+  #[arg(short, long)]
+  filename: String,
+  #[arg(short, long)]
+  vendor: bool,
+  #[arg(short, long, value_name = "NAME")]
+  name: Option<String>,
+  #[arg(short, long, value_name = "FILE")]
+  export: Option<String>,
 }
 
-fn print_vorbis_comments(vorbis_comment: &VorbisComment, args: &Arguments) {
-  let no_flags  = (args.flag_vendor || args.flag_name.is_some()) == false;
 
-  if no_flags || args.flag_vendor {
+fn print_vorbis_comments(vorbis_comment: &VorbisComment, args: &Arguments) {
+  let no_flags  = (args.vendor || args.name.is_some()) == false;
+
+  if no_flags || args.vendor {
     format_print!("{}{}", "Vendor string: ", vorbis_comment.vendor_string,
                                              no_flags);
   }
@@ -42,7 +38,7 @@ fn print_vorbis_comments(vorbis_comment: &VorbisComment, args: &Arguments) {
       index += 1;
     }
   } else {
-    if let Some(ref name) = args.flag_name {
+    if let Some(ref name) = args.name {
       let error_str = format!("Couldn't find tag name: \"{}\"", name);
       let result    = vorbis_comment.comments.get(name).unwrap_or(&error_str);
 
@@ -63,13 +59,13 @@ fn export_vorbis_comments(vorbis_comment: &VorbisComment, filename: &str)
 }
 
 pub fn run(args: &Arguments) {
-  let stream = StreamReader::<File>::from_file(&args.arg_filename)
+  let stream = StreamReader::<File>::from_file(&args.filename)
                  .expect("Couldn't parse file");
 
   for meta in stream.metadata() {
     match meta.data {
       metadata::Data::VorbisComment(ref v) => {
-        if let Some(ref filename) = args.flag_export {
+        if let Some(ref filename) = args.export {
           export_vorbis_comments(v, filename)
             .expect("couldn't write to file")
         } else {

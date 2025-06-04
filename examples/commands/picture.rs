@@ -1,24 +1,19 @@
 use std::io::{self, Write};
 use std::fs::File;
 
+use clap::Args;
+
 use flac::stream::StreamReader;
 use flac::metadata::{self, Picture};
 
-pub const USAGE: &'static str = "
-Usage: metadata picture [options] <filename>
-       metadata picture --help
-
-Options:
-  --export=FILE      Export to file.
-  --index=NUMBER     Index of the current metadata type.
-  -h, --help         Show this message.
-";
-
-#[derive(Debug, RustcDecodable)]
+#[derive(Args)]
 pub struct Arguments {
-  arg_filename: String,
-  flag_export: Option<String>,
-  flag_index: Option<usize>,
+  #[arg(short, long, required = true, value_name = "FILE")]
+  filename: String,
+  #[arg(short, long, value_name = "FILE")]
+  export: Option<String>,
+  #[arg(short, long)]
+  index: Option<usize>,
 }
 
 fn export_picture(picture: &Picture, filename: &str) -> io::Result<()> {
@@ -36,11 +31,11 @@ fn print_picture(picture: &Picture) {
 }
 
 pub fn run(args: &Arguments) {
-  let stream = StreamReader::<File>::from_file(&args.arg_filename)
+  let stream = StreamReader::<File>::from_file(&args.filename)
                  .expect("Couldn't parse file");
 
   let mut index = 0;
-  let end_index = args.flag_index.unwrap_or(0);
+  let end_index = args.index.unwrap_or(0);
 
   for meta in stream.metadata() {
     match meta.data {
@@ -51,7 +46,7 @@ pub fn run(args: &Arguments) {
           continue;
         }
 
-        if let Some(ref filename) = args.flag_export {
+        if let Some(ref filename) = args.export {
           export_picture(p, filename).expect("couldn't write to file");
 
           break;

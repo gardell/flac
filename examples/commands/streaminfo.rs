@@ -1,43 +1,37 @@
 use std::fs::File;
 
+use clap::Args;
 use flac::{Stream, StreamProducer, StreamReader};
 
-pub const USAGE: &'static str = "
-Usage: metadata streaminfo [options] <filename>
-       metadata streaminfo --help
-
-Options:
-  --block-size       Show both the max and min block size from StreamInfo.
-  --frame-size       Show both the max and min frame size from StreamInfo.
-  --sample-rate      Show the sample rate from StreamInfo.
-  --channels         Show the number of channels from StreamInfo.
-  --bits-per-sample  Show the size in bits for each sample from StreamInfo.
-  --total-samples    Show total number of samples from StreamInfo.
-  --md5              Show the MD5 signature from StreamInfo.
-  -h, --help         Show this message.
-";
-
-#[derive(Debug, RustcDecodable)]
+#[derive(Args)]
 pub struct Arguments {
-  arg_filename: String,
-  flag_block_size: bool,
-  flag_frame_size: bool,
-  flag_sample_rate: bool,
-  flag_channels: bool,
-  flag_bits_per_sample: bool,
-  flag_total_samples: bool,
-  flag_md5: bool,
+  #[arg(short, long, required = true)]
+  filename: String,
+  #[arg(long)]
+  block_size: bool,
+  #[arg(long)]
+  frame_size: bool,
+  #[arg(long)]
+  sample_rate: bool,
+  #[arg(long)]
+  channels: bool,
+  #[arg(long)]
+  bits_per_sample: bool,
+  #[arg(long)]
+  total_samples: bool,
+  #[arg(long)]
+  md5: bool,
 }
 
 fn print_stream_info<P>(stream: &Stream<P>, args: &Arguments)
  where P: StreamProducer {
   let info     = stream.info();
-  let no_flags = (args.flag_block_size      || args.flag_frame_size    ||
-                  args.flag_sample_rate     || args.flag_channels      ||
-                  args.flag_bits_per_sample || args.flag_total_samples ||
-                  args.flag_md5) == false;
+  let no_flags = (args.block_size      || args.frame_size    ||
+                  args.sample_rate     || args.channels      ||
+                  args.bits_per_sample || args.total_samples ||
+                  args.md5) == false;
 
-  if no_flags || args.flag_block_size {
+  if no_flags || args.block_size {
     let block_size_str = if info.is_fixed_block_size() {
       format!("{} samples", info.max_block_size)
     } else {
@@ -47,29 +41,29 @@ fn print_stream_info<P>(stream: &Stream<P>, args: &Arguments)
     format_print!("{}{}", "Block size: ", block_size_str, no_flags);
   }
 
-  if no_flags || args.flag_frame_size {
+  if no_flags || args.frame_size {
     println!("Frame size: {} - {} bytes", info.min_frame_size,
                                           info.max_frame_size);
   }
 
-  if no_flags || args.flag_sample_rate {
+  if no_flags || args.sample_rate {
     format_print!("{}{} Hz", "Sample rate: ", info.sample_rate, no_flags);
   }
 
-  if no_flags || args.flag_channels {
+  if no_flags || args.channels {
     format_print!("{}{}", "Number of channels: ", info.channels, no_flags);
   }
 
-  if no_flags || args.flag_bits_per_sample {
+  if no_flags || args.bits_per_sample {
     format_print!("{}{}", "Bits per samples: ", info.bits_per_sample,
                                                 no_flags);
   }
 
-  if no_flags || args.flag_total_samples {
+  if no_flags || args.total_samples {
     format_print!("{}{}", "Total samples: ", info.total_samples, no_flags);
   }
 
-  if no_flags || args.flag_md5 {
+  if no_flags || args.md5 {
     let mut md5  = String::with_capacity(32);
 
     for byte in &info.md5_sum {
@@ -83,7 +77,7 @@ fn print_stream_info<P>(stream: &Stream<P>, args: &Arguments)
 }
 
 pub fn run(args: &Arguments) {
-  let stream = StreamReader::<File>::from_file(&args.arg_filename)
+  let stream = StreamReader::<File>::from_file(&args.filename)
                  .expect("Couldn't parse file");
 
   print_stream_info(&stream, &args);

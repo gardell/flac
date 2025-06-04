@@ -1,67 +1,40 @@
-extern crate docopt;
+extern crate clap;
 extern crate flac;
 extern crate rustc_serialize;
 
 #[macro_use]
 mod commands;
 
-use std::env;
-
 use commands::{streaminfo, comments, seektable, picture, list_block_names};
-use docopt::Docopt;
 
-const USAGE: &'static str = "
-Usage: metadata <command> [<args>...]
-       metadata [options] [<filename>]
-
-Options:
-  --list      List all blocks by name.
-  -h, --help  Show this message.
-
-Commands:
-  streaminfo  Display stream information.
-  comments    Display or export comment tags.
-  seektable   Display seek table.
-  picture     Export pictures.
-";
-
-#[derive(Debug, RustcDecodable)]
+use clap::{Parser, Subcommand};
+#[derive(Parser)]
+#[command(version, about, long_about = None)]
 struct Arguments {
-  arg_command: Option<Command>,
-  arg_filename: Option<String>,
-  flag_list: bool,
-  arg_args: Vec<String>,
+  #[command(subcommand)]
+  command: Command,
 }
 
-#[derive(Clone, Copy, Debug, RustcDecodable)]
+#[derive(Subcommand)]
 enum Command {
-  StreamInfo,
-  Comments,
-  SeekTable,
-  Picture,
-}
-
-fn handle_subcommand(command: Command) {
-  match command {
-    Command::StreamInfo => command!(streaminfo),
-    Command::Comments   => command!(comments),
-    Command::SeekTable  => command!(seektable),
-    Command::Picture    => command!(picture),
-  }
+  List {
+    #[arg(short, long)]
+    filename: String,
+  },
+  StreamInfo(streaminfo::Arguments),
+  Comments(comments::Arguments),
+  SeekTable(seektable::Arguments),
+  Picture(picture::Arguments),
 }
 
 fn main() {
-  let args: Arguments = Docopt::new(USAGE)
-    .and_then(|d| d.options_first(true).decode())
-    .unwrap_or_else(|e| e.exit());
+  let args = Arguments::parse();
 
-  if let Some(command) = args.arg_command {
-    handle_subcommand(command);
-  } else if let Some(ref filename) = args.arg_filename {
-    if args.flag_list {
-      list_block_names(filename);
-    }
-  } else {
-    println!("{}", USAGE);
+  match args.command {
+    Command::List { filename } => list_block_names(&filename),
+    Command::StreamInfo(stream_info) => streaminfo::run(&stream_info),
+    Command::Comments(comments) => comments::run(&comments),
+    Command::SeekTable(seek_table) => seektable::run(&seek_table),
+    Command::Picture(picture) => picture::run(&picture),
   }
 }

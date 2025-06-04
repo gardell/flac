@@ -1,19 +1,14 @@
 use std::fs::File;
 
+use clap::Args;
+
 use flac::StreamReader;
 use flac::metadata::{self, SeekPoint};
 
-pub const USAGE: &'static str = "
-Usage: metadata seektable <filename>
-       metadata seektable --help
-
-Options:
-  -h, --help  Show this message.
-";
-
-#[derive(Debug, RustcDecodable)]
+#[derive(Args)]
 pub struct Arguments {
-  arg_filename: String,
+  #[arg(short, long, value_name = "FILE")]
+  filename: String,
 }
 
 fn print_seek_table(seek_points: &[SeekPoint]) {
@@ -31,7 +26,7 @@ fn print_seek_table(seek_points: &[SeekPoint]) {
 }
 
 pub fn run(args: &Arguments) {
-  let stream = StreamReader::<File>::from_file(&args.arg_filename)
+  let stream = StreamReader::<File>::from_file(&args.filename)
                  .expect("Couldn't parse file");
 
   for meta in stream.metadata() {

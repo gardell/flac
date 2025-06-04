@@ -14,18 +14,6 @@ macro_rules! format_print (
   );
 );
 
-macro_rules! command (
-  ($name: ident) => (
-    {
-      let args: $name::Arguments = Docopt::new($name::USAGE)
-        .and_then(|d| d.argv(env::args()).decode())
-        .unwrap_or_else(|e| e.exit());
-
-      $name::run(&args)
-    }
-  );
-);
-
 pub fn list_block_names(filename: &str) {
   let stream = StreamReader::<File>::from_file(filename)
                  .expect("Couldn't parse file");
